@@ -32,28 +32,39 @@ export default function ReportSchemaTable({ reportId }) {
     setRows(initial);
   }, [reportId, initial]);
 
-  const editRow = (idx) => {
-    const current = rows[idx];
-    const label = prompt("Edit label", current.label);
-    if (label == null) return;
-    const next = rows.map((r, i) => (i === idx ? { ...r, label } : r));
-    setRows(next);
+  const editSchema = () => {
+    const newLabel = prompt("Edit schema name", "Report Schema");
+    if (newLabel == null) return;
+    // You can implement schema-level editing logic here
+    console.log("Edit schema:", newLabel);
   };
 
-  const copyRow = (idx) => {
-    const next = [...rows];
-    next.splice(idx + 1, 0, { ...rows[idx] });
-    setRows(next);
+  const copySchema = () => {
+    if (!confirm("Copy entire schema?")) return;
+    // You can implement schema copying logic here
+    console.log("Copy schema");
   };
 
-  const deleteRow = (idx) => {
-    if (!confirm("Delete this field?")) return;
-    const next = rows.filter((_, i) => i !== idx);
-    setRows(next);
+  const deleteSchema = () => {
+    if (!confirm("Delete entire schema? This will remove all fields.")) return;
+    setRows([]);
   };
 
   return (
     <div className="overflow-x-auto">
+      {/* Schema Actions */}
+      <div className="mb-4 flex items-center gap-2">
+        <button className="btn btn-outline py-2 px-4" onClick={editSchema}>
+          Edit Schema
+        </button>
+        <button className="btn btn-outline py-2 px-4" onClick={copySchema}>
+          Copy Schema
+        </button>
+        <button className="btn btn-outline py-2 px-4" onClick={deleteSchema}>
+          Delete Schema
+        </button>
+      </div>
+
       <table className="min-w-full text-xs">
         <thead className="bg-slate-50 text-slate-600">
           <tr>
@@ -63,7 +74,6 @@ export default function ReportSchemaTable({ reportId }) {
             <th className="px-3 py-2 text-left">Type</th>
             <th className="px-3 py-2 text-left">Format</th>
             <th className="px-3 py-2 text-left">Calculation</th>
-            <th className="px-3 py-2 w-40 text-left">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -75,28 +85,6 @@ export default function ReportSchemaTable({ reportId }) {
               <td className="px-3 py-2">{r.type}</td>
               <td className="px-3 py-2">{r.format}</td>
               <td className="px-3 py-2">{r.calculation}</td>
-              <td className="px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <button
-                    className="btn btn-outline py-1"
-                    onClick={() => editRow(idx)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="btn btn-outline py-1"
-                    onClick={() => copyRow(idx)}
-                  >
-                    Copy
-                  </button>
-                  <button
-                    className="btn btn-outline py-1"
-                    onClick={() => deleteRow(idx)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </td>
             </tr>
           ))}
         </tbody>
