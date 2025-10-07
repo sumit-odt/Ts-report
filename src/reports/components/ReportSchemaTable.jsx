@@ -6,6 +6,34 @@ export default function ReportSchemaTable({ reportId }) {
   const initial = useMemo(() => getSchemaForReport(reportId), [reportId]);
   const [rows, setRows] = useState(initial);
 
+  // Infer a sensible data type from a generic field name when schema info is missing
+  const inferTypeFromName = (name) => {
+    const n = String(name || "").toLowerCase();
+    if (
+      /(date|dob|day|time|at)$/.test(n) ||
+      n.includes("date") ||
+      n.includes("dob") ||
+      n.includes("time")
+    ) {
+      return "date";
+    }
+    if (
+      /(id|count|qty|num|number|amount|total|year|years|percent|percentage)$/.test(
+        n
+      ) ||
+      n.includes("amount") ||
+      n.includes("total") ||
+      n.includes("year") ||
+      n.includes("percent")
+    ) {
+      return "number";
+    }
+    if (/(phone|account|ssn|pan|aadhar)$/.test(n)) {
+      return "masked";
+    }
+    return "string";
+  };
+
   useEffect(() => {
     const selected = getReportFields(reportId);
     if (Array.isArray(selected) && selected.length > 0) {
@@ -13,14 +41,18 @@ export default function ReportSchemaTable({ reportId }) {
       const byField = Object.fromEntries(
         (initial || []).map((r) => [r.field, r])
       );
+      const byLabelLower = Object.fromEntries(
+        (initial || []).map((r) => [String(r.label || "").toLowerCase(), r])
+      );
       const filtered = selected
         .map(
           (f) =>
-            byField[f] || {
+            byField[f] ||
+            byLabelLower[String(f).toLowerCase()] || {
               required: false,
               field: f,
               label: f,
-              type: "string",
+              type: inferTypeFromName(f),
               format: "",
               calculation: "",
             }
