@@ -2,6 +2,8 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { formatMMDDYYYY } from './date.js';
+import { supabase } from './supabaseClient.js';
+import { getReportFields, getReportTableName } from './reportPreferences.js';
 
 // Mock dataset generator
 const EMPLOYEES = ['Sumit Khanvilkar', 'Asha Patel', 'Rahul Sharma', 'Priya Mehta', 'Ravi Kumar'];
@@ -56,7 +58,91 @@ function applySort(rows, { key, direction }) {
   return direction === 'desc' ? s.reverse() : s;
 }
 
-export async function fetchReportData({ page, pageSize, sort, filters }) {
+export async function fetchReportData({ page, pageSize, sort, filters, reportId }) {
+  // If reportId is provided and has custom table/columns, fetch from Supabase
+  if (reportId) {
+    const tableNames = getReportTableName(reportId); // Can be comma-separated
+    const selectedColumns = getReportFields(reportId); // Format: "table.column"
+    
+    if (tableNames && selectedColumns && selectedColumns.length > 0) {
+      try {
+        const tables = tableNames.split(',');
+        console.log("🔍 Fetching from Supabase:", { tables, selectedColumns, page, pageSize });
+        
+        if (tables.length === 1) {
+          // Single table query
+          const tableName = tables[0];
+          const columns = selectedColumns.map(col => col.replace(`${tableName}.`, ''));
+          
+          let query = supabase.from(tableName).select(columns.join(','), { count: 'exact' });
+          
+          // Apply sorting
+          if (sort && sort.key) {
+            const sortKey = sort.key.includes('.') ? sort.key.split('.')[1] : sort.key;
+            query = query.order(sortKey, { ascending: sort.direction === 'asc' });
+          }
+          
+          // Apply pagination
+          const offset = (page - 1) * pageSize;
+          query = query.range(offset, offset + pageSize - 1);
+          
+          const { data, error, count } = await query;
+          if (error) throw error;
+          
+          console.log("✅ Fetched data from Supabase:", { rows: data?.length, total: count });
+          return { rows: data || [], total: count || 0 };
+          
+        } else {
+          // Multiple tables - fetch separately and combine (simplified approach)
+          // In a real application, you'd want to handle JOINs properly
+          console.warn("⚠️ Multiple tables detected. Fetching primary table only.");
+          const primaryTable = tables[0];
+          const primaryColumns = selectedColumns
+            .filter(col => col.startsWith(`${primaryTable}.`))
+            .map(col => col.replace(`${primaryTable}.`, ''));
+          
+          if (primaryColumns.length === 0) {
+            throw new Error("No columns selected for primary table");
+          }
+          
+          let query = supabase.from(primaryTable).select(primaryColumns.join(','), { count: 'exact' });
+          
+          // Apply sorting
+          if (sort && sort.key) {
+            const sortKey = sort.key.includes('.') ? sort.key.split('.')[1] : sort.key;
+            if (primaryColumns.includes(sortKey)) {
+              query = query.order(sortKey, { ascending: sort.direction === 'asc' });
+            }
+          }
+          
+          // Apply pagination
+          const offset = (page - 1) * pageSize;
+          query = query.range(offset, offset + pageSize - 1);
+          
+          const { data, error, count } = await query;
+          if (error) throw error;
+          
+          // Add table prefix to column names for display
+          const prefixedData = data.map(row => {
+            const prefixed = {};
+            Object.keys(row).forEach(key => {
+              prefixed[`${primaryTable}.${key}`] = row[key];
+            });
+            return prefixed;
+          });
+          
+          console.log("✅ Fetched data from Supabase:", { rows: prefixedData?.length, total: count });
+          return { rows: prefixedData || [], total: count || 0 };
+        }
+      } catch (err) {
+        console.error("❌ Supabase fetch error:", err);
+        throw new Error(`Failed to fetch data: ${err.message}`);
+      }
+    }
+  }
+  
+  // Fallback to mock data if no custom table is configured
+  console.log("⚠️ Using mock data (no custom table configured)");
   await new Promise((r) => setTimeout(r, 350)); // simulate latency
   let rows = applyFilters(MOCK_DATA, filters || {});
   rows = applySort(rows, sort || { key: 'date', direction: 'desc' });

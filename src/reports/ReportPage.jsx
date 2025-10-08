@@ -30,14 +30,16 @@ export default function ReportPage() {
   const [customColumns, setCustomColumns] = useState([]);
 
   const query = useMemo(
-    () => ({ page, pageSize, sort, filters }),
-    [page, pageSize, sort, filters]
+    () => ({ page, pageSize, sort, filters, reportId: id }),
+    [page, pageSize, sort, filters, id]
   );
 
   useEffect(() => {
     // Load customized fields, if any
     const fields = getReportFields(id);
-    if (Array.isArray(fields)) setCustomColumns(fields);
+    if (Array.isArray(fields) && fields.length > 0) {
+      setCustomColumns(fields);
+    }
   }, [id]);
 
   useEffect(() => {
@@ -68,12 +70,12 @@ export default function ReportPage() {
           {total.toLocaleString()} records
         </div>
         <div className="flex items-center gap-2">
-          <button
+          {/* <button
             className="btn btn-outline"
             onClick={() => navigate(`/reports/${id}/filter`)}
           >
             Filter
-          </button>
+          </button> */}
           <ExportButtons rows={data} fileName={(id || "report") + "-export"} />
         </div>
       </div>

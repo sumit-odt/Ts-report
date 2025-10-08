@@ -1,4 +1,5 @@
-import React from "react";
+// src/reports/ReportTable.jsx
+import React, { useEffect, useState } from "react";
 import { getReportFields } from "../../services/reportPreferences.js";
 import { useParams } from "react-router-dom";
 
@@ -27,8 +28,23 @@ export default function ReportTable({
   total,
   customColumns,
 }) {
-  // Compose default columns from persisted selections combined with logical defaults
-  // Using same baseline columns as in ReportCustomize's FIELDS for Timesheets
+  const { id } = useParams();
+  const [persisted, setPersisted] = useState([]);
+
+  useEffect(() => {
+    const loadFields = () => {
+      const fields = getReportFields(id);
+      setPersisted(fields || []);
+    };
+    loadFields();
+
+    const handler = (e) => {
+      if (e.detail?.reportId === id) loadFields();
+    };
+    window.addEventListener("reportFieldsUpdated", handler);
+    return () => window.removeEventListener("reportFieldsUpdated", handler);
+  }, [id]);
+
   const baseDefaults = [
     { key: "date", label: "Date", width: "w-40" },
     { key: "employee", label: "Employee" },
@@ -38,41 +54,15 @@ export default function ReportTable({
     { key: "totalMins", label: "Total (m)", width: "w-28" },
     { key: "location", label: "Location" },
   ];
-  const { id } = useParams() || {};
-  const persisted = getReportFields(id) || [];
-  const defaultColumns = baseDefaults;
+
   const columns = React.useMemo(() => {
     const selected = Array.isArray(customColumns) ? customColumns : persisted;
     if (Array.isArray(selected) && selected.length > 0) {
-      const byKey = Object.fromEntries(defaultColumns.map((c) => [c.key, c]));
+      const byKey = Object.fromEntries(baseDefaults.map((c) => [c.key, c]));
       return selected.map((k) => byKey[k] || { key: k, label: k });
     }
-    return defaultColumns;
-  }, [customColumns, persisted]);
-
-  // Auto-size: compute a preferred width in px for each column based on header and sample row values
-  const columnMinWidths = React.useMemo(() => {
-    const widthMap = {};
-    const sample = Array.isArray(rows) ? rows.slice(0, 50) : [];
-    const basePaddingPx = 24; // approx from px-3 left+right
-    const pxPerChar = 8; // heuristic average width
-    columns.forEach((col) => {
-      const headerLen = String(col.label || col.key).length;
-      let maxLen = headerLen;
-      for (let i = 0; i < sample.length; i += 1) {
-        const v = sample[i]?.[col.key];
-        const str = v == null ? "" : String(v);
-        if (str.length > maxLen) maxLen = str.length;
-      }
-      // Set bounds so columns don't get too tiny or too wide
-      const prefPx = Math.max(
-        90,
-        Math.min(340, maxLen * pxPerChar + basePaddingPx)
-      );
-      widthMap[col.key] = prefPx;
-    });
-    return widthMap;
-  }, [columns, rows]);
+    return baseDefaults;
+  }, [persisted, customColumns]);
 
   const changeSort = (key) => {
     if (sort.key === key) {
@@ -88,16 +78,6 @@ export default function ReportTable({
   return (
     <div className="overflow-x-auto">
       <table className="table-stretch text-sm" style={{ tableLayout: "auto" }}>
-        <colgroup>
-          {columns.map((c) => (
-            <col
-              key={c.key}
-              style={{
-                width: `${Math.max(8, Math.floor(100 / columns.length))}%`,
-              }}
-            />
-          ))}
-        </colgroup>
         <thead className="bg-slate-50 text-slate-600">
           <tr>
             {columns.map((c) => (
@@ -111,7 +91,7 @@ export default function ReportTable({
                   onClick={() => changeSort(c.key)}
                   className="flex items-center"
                 >
-                  {c.label}
+                  {c.label}{" "}
                   <SortIcon
                     active={sort.key === c.key}
                     direction={sort.direction}
@@ -161,15 +141,9 @@ export default function ReportTable({
                     key={c.key}
                     className={`px-3 py-2 ${
                       c.key.includes("Mins") ? "text-right" : ""
-                    } ${
-                      c.key === "date" ||
-                      c.key === "clockIn" ||
-                      c.key === "clockOut"
-                        ? "whitespace-nowrap"
-                        : ""
                     }`}
                   >
-                    {r[c.key] != null ? r[c.key] : ""}
+                    {r[c.key] ?? ""}
                   </td>
                 ))}
               </tr>

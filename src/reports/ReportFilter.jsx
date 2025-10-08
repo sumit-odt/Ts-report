@@ -1,10 +1,7 @@
-import React, { useMemo, useState } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+// src/reports/ReportFilter.jsx
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { getReportFields } from "../services/reportPreferences.js";
-import {
-  FIELDS as CUSTOMIZE_FIELDS,
-  SOURCES as CUSTOMIZE_SOURCES,
-} from "./ReportCustomize.jsx";
 
 const CONDITIONS = [
   { value: "eq", label: "equals (=)" },
@@ -19,51 +16,61 @@ const CONDITIONS = [
 export default function ReportFilter() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const location = useLocation();
+  const [fieldOptions, setFieldOptions] = useState([]);
+  const [items, setItems] = useState([]);
+  const [logic, setLogic] = useState("AND");
+  const [loading, setLoading] = useState(true);
 
-  // Build field options from ReportCustomize's SOURCES/FIELDS + saved custom columns for this report
-  const fieldOptions = useMemo(() => {
-    const allFromFields = Object.values(CUSTOMIZE_FIELDS || {}).flat();
-    const unique = Array.from(new Set(allFromFields));
-    const saved = getReportFields(id) || [];
-    const mergedOrdered = [
-      ...unique,
-      ...saved.filter((k) => !unique.includes(k)),
-    ];
-    return mergedOrdered.map((k) => ({ value: k, label: k }));
+  const loadFields = () => {
+    setLoading(true);
+    const savedFields = getReportFields(id);
+    const options = (savedFields || []).map((f) => ({ value: f, label: f }));
+    setFieldOptions(options);
+
+    setItems(
+      options.length > 0
+        ? [{ field: options[0].value, condition: "eq", value: "" }]
+        : []
+    );
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadFields();
+    const handler = (e) => {
+      if (e.detail?.reportId === id) loadFields();
+    };
+    window.addEventListener("reportFieldsUpdated", handler);
+    return () => window.removeEventListener("reportFieldsUpdated", handler);
   }, [id]);
 
-  const [items, setItems] = useState([
-    { field: fieldOptions[0]?.value || "date", condition: "eq", value: "" },
-  ]);
-  const [logic, setLogic] = useState("AND");
-
-  const updateItem = (idx, changes) => {
+  const updateItem = (idx, changes) =>
     setItems((prev) =>
       prev.map((it, i) => (i === idx ? { ...it, ...changes } : it))
     );
-  };
 
-  const addItem = () =>
+  const addItem = () => {
+    if (fieldOptions.length === 0) return;
     setItems((prev) => [
       ...prev,
-      { field: fieldOptions[0]?.value || "date", condition: "eq", value: "" },
+      { field: fieldOptions[0].value, condition: "eq", value: "" },
     ]);
+  };
+
   const removeItem = (idx) =>
     setItems((prev) => prev.filter((_, i) => i !== idx));
 
   const apply = () => {
-    const payload = { reportId: id, logic, items };
-    // For now, just log. Later this can be pushed into state/store/URL.
-    // eslint-disable-next-line no-console
-    console.log("APPLY_FILTER", payload);
+    console.log("APPLY_FILTER", { reportId: id, logic, items });
     navigate(`/reports/${id}`);
   };
 
   const clear = () => {
-    setItems([
-      { field: fieldOptions[0]?.value || "date", condition: "eq", value: "" },
-    ]);
+    if (fieldOptions.length > 0) {
+      setItems([{ field: fieldOptions[0].value, condition: "eq", value: "" }]);
+    } else {
+      setItems([]);
+    }
   };
 
   return (
@@ -79,41 +86,16 @@ export default function ReportFilter() {
       </div>
 
       <div className="card p-4 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-600">Combine with</span>
-            <div className="inline-flex overflow-hidden rounded-lg border border-slate-300">
-              <button
-                type="button"
-                className={`px-3 py-1.5 text-sm ${
-                  logic === "AND"
-                    ? "bg-indigo-600 text-white"
-                    : "hover:bg-slate-100"
-                }`}
-                onClick={() => setLogic("AND")}
-              >
-                AND
-              </button>
-              <button
-                type="button"
-                className={`px-3 py-1.5 text-sm border-l border-slate-300 ${
-                  logic === "OR"
-                    ? "bg-indigo-600 text-white"
-                    : "hover:bg-slate-100"
-                }`}
-                onClick={() => setLogic("OR")}
-              >
-                OR
-              </button>
-            </div>
+        {loading && <p>Loading fields…</p>}
+        {!loading && fieldOptions.length === 0 && (
+          <div className="text-slate-500 text-sm mb-2">
+            No fields selected in Report Customize for this report.
           </div>
-          <button className="btn btn-outline" onClick={addItem}>
-            Add Condition
-          </button>
-        </div>
+        )}
 
-        <div className="grid gap-3">
-          {items.map((it, idx) => (
+        {!loading &&
+          fieldOptions.length > 0 &&
+          items.map((it, idx) => (
             <div
               key={idx}
               className="grid md:grid-cols-12 gap-3 items-end bg-slate-50/60 border border-slate-200 p-3 rounded-lg"
@@ -134,6 +116,7 @@ export default function ReportFilter() {
                   ))}
                 </select>
               </div>
+
               <div className="md:col-span-3">
                 <label className="block text-xs font-medium text-slate-600 mb-1">
                   Filter Condition
@@ -152,6 +135,7 @@ export default function ReportFilter() {
                   ))}
                 </select>
               </div>
+
               <div className="md:col-span-4">
                 <label className="block text-xs font-medium text-slate-600 mb-1">
                   Filter Value
@@ -163,6 +147,7 @@ export default function ReportFilter() {
                   onChange={(e) => updateItem(idx, { value: e.target.value })}
                 />
               </div>
+
               <div className="md:col-span-1 flex items-end justify-end">
                 <button
                   type="button"
@@ -170,33 +155,22 @@ export default function ReportFilter() {
                   title="Remove condition"
                   onClick={() => removeItem(idx)}
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    className="h-4 w-4"
-                  >
-                    <path
-                      d="M6 7h12M9 7V5h6v2m-8 3l1 10h8l1-10"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  ❌
                 </button>
               </div>
             </div>
           ))}
-        </div>
 
-        <div className="flex items-center justify-end gap-2">
-          <button className="btn btn-outline" onClick={clear}>
-            Clear Filter
-          </button>
-          <button className="btn btn-primary" onClick={apply}>
-            Apply Filter
-          </button>
-        </div>
+        {!loading && fieldOptions.length > 0 && (
+          <div className="flex items-center justify-end gap-2">
+            <button className="btn btn-outline" onClick={clear}>
+              Clear Filter
+            </button>
+            <button className="btn btn-primary" onClick={apply}>
+              Apply Filter
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

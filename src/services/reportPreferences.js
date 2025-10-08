@@ -1,60 +1,101 @@
-const STORAGE_KEY = 'report_preferences_v1';
-const LAST_VIEWED_KEY = 'report_last_viewed_v1';
+// src/services/reportPreferences.js
+import { supabase } from "./supabaseClient.js";
 
-function readAll() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch (e) {
-    return {};
+// Use localStorage as primary storage for now (Supabase table may not be set up yet)
+export function setReportFields(reportId, selectedColumns, tableName) {
+  if (!reportId) {
+    console.warn("setReportFields: No reportId provided");
+    return;
   }
-}
-
-function writeAll(map) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+  try {
+    // Store in localStorage
+    const key = `report_fields_${reportId}`;
+    const data = {
+      selectedColumns,
+      tableName,
+      updatedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(key, JSON.stringify(data));
+    console.log("✅ Saved to localStorage:", { reportId, selectedColumns, tableName });
+    
+    // Dispatch event to update components immediately
+    window.dispatchEvent(
+      new CustomEvent("reportFieldsUpdated", {
+        detail: { reportId, selectedColumns },
+      })
+    );
+    console.log("✅ Dispatched reportFieldsUpdated event");
+    
+    // Also try to save to Supabase (optional, will fail silently if table doesn't exist)
+    supabase.from("report_preferences").upsert([
+      {
+        report_id: reportId,
+        table_name: tableName,
+        selected_columns: selectedColumns,
+      },
+    ]).catch((e) => console.log("Supabase save skipped:", e.message));
+  } catch (e) {
+    console.error("setReportFields error", e);
+  }
 }
 
 export function getReportFields(reportId) {
-  const all = readAll();
-  return all[reportId]?.fields || null;
-}
-
-export function setReportFields(reportId, fields) {
-  const all = readAll();
-  all[reportId] = { ...(all[reportId] || {}), fields };
-  writeAll(all);
-}
-
-export function clearReportFields(reportId) {
-  const all = readAll();
-  if (all[reportId]) {
-    delete all[reportId].fields;
-    writeAll(all);
+  if (!reportId) {
+    console.warn("getReportFields: No reportId provided");
+    return [];
   }
-}
-
-function readLastViewedMap() {
   try {
-    const raw = localStorage.getItem(LAST_VIEWED_KEY);
-    return raw ? JSON.parse(raw) : {};
+    // Get from localStorage
+    const key = `report_fields_${reportId}`;
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      const data = JSON.parse(stored);
+      console.log("✅ Retrieved from localStorage:", { reportId, fields: data.selectedColumns });
+      return data.selectedColumns || [];
+    }
+    console.log("⚠️ No saved fields found for:", reportId);
+    return [];
   } catch (e) {
-    return {};
+    console.error("getReportFields error", e);
+    return [];
   }
 }
 
-function writeLastViewedMap(map) {
-  localStorage.setItem(LAST_VIEWED_KEY, JSON.stringify(map));
+export function getReportTableName(reportId) {
+  if (!reportId) return null;
+  try {
+    const key = `report_fields_${reportId}`;
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      const data = JSON.parse(stored);
+      return data.tableName || null;
+    }
+    return null;
+  } catch (e) {
+    console.error("getReportTableName error", e);
+    return null;
+  }
 }
 
-export function setReportLastViewed(reportId, isoDateString) {
-  const map = readLastViewedMap();
-  map[reportId] = isoDateString || new Date().toISOString();
-  writeLastViewedMap(map);
-}
-
+// Use localStorage for last viewed since the column doesn't exist in Supabase table yet
 export function getReportLastViewed(reportId) {
-  const map = readLastViewedMap();
-  return map[reportId] || null;
+  if (!reportId) return null;
+  try {
+    const key = `report_last_viewed_${reportId}`;
+    const stored = localStorage.getItem(key);
+    return stored || null;
+  } catch (e) {
+    console.error("getReportLastViewed error", e);
+    return null;
+  }
 }
 
-
+export function setReportLastViewed(reportId) {
+  if (!reportId) return;
+  try {
+    const key = `report_last_viewed_${reportId}`;
+    localStorage.setItem(key, new Date().toISOString());
+  } catch (e) {
+    console.error("setReportLastViewed error", e);
+  }
+}
