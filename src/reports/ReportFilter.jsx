@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getReportFields } from "../services/reportPreferences.js";
+import SearchableSelect from "./components/SearchableSelect.jsx";
 
 const CONDITIONS = [
   { value: "eq", label: "equals (=)" },
@@ -102,38 +103,27 @@ export default function ReportFilter() {
             >
               <div className="md:col-span-4">
                 <label className="block text-xs font-medium text-slate-600 mb-1">
-                  Select Field
+                  Select or Type Field
                 </label>
-                <select
-                  className="input"
+                <SearchableSelect
                   value={it.field}
-                  onChange={(e) => updateItem(idx, { field: e.target.value })}
-                >
-                  {fieldOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => updateItem(idx, { field: value })}
+                  options={fieldOptions}
+                  placeholder="Select or type field name"
+                />
               </div>
 
               <div className="md:col-span-3">
                 <label className="block text-xs font-medium text-slate-600 mb-1">
                   Filter Condition
                 </label>
-                <select
-                  className="input"
+                <SearchableSelect
                   value={it.condition}
-                  onChange={(e) =>
-                    updateItem(idx, { condition: e.target.value })
-                  }
-                >
-                  {CONDITIONS.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => updateItem(idx, { condition: value })}
+                  options={CONDITIONS}
+                  placeholder="Select condition"
+                  editable={false}
+                />
               </div>
 
               <div className="md:col-span-4">

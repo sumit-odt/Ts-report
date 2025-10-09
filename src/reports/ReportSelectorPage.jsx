@@ -58,15 +58,14 @@ function AdjustIcon() {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="2"
       className="h-5 w-5"
     >
-      <path d="M4 7h12" strokeLinecap="round" />
-      <circle cx="18" cy="7" r="2" />
-      <path d="M4 12h7" strokeLinecap="round" />
-      <circle cx="13" cy="12" r="2" />
-      <path d="M4 17h14" strokeLinecap="round" />
-      <circle cx="6" cy="17" r="2" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+      />
     </svg>
   );
 }

@@ -74,12 +74,20 @@ export async function fetchReportData({ page, pageSize, sort, filters, reportId 
           const tableName = tables[0];
           const columns = selectedColumns.map(col => col.replace(`${tableName}.`, ''));
           
+          console.log("📊 Single table query:", { tableName, columns, selectedColumns });
+          
           let query = supabase.from(tableName).select(columns.join(','), { count: 'exact' });
           
           // Apply sorting
           if (sort && sort.key) {
             const sortKey = sort.key.includes('.') ? sort.key.split('.')[1] : sort.key;
-            query = query.order(sortKey, { ascending: sort.direction === 'asc' });
+            console.log("🔀 Sorting by:", { originalKey: sort.key, sortKey, direction: sort.direction });
+            // Only apply sorting if the column exists in the selected columns
+            if (columns.includes(sortKey)) {
+              query = query.order(sortKey, { ascending: sort.direction === 'asc' });
+            } else {
+              console.warn("⚠️ Sort column not in selected columns, skipping sort");
+            }
           }
           
           // Apply pagination
@@ -87,15 +95,29 @@ export async function fetchReportData({ page, pageSize, sort, filters, reportId 
           query = query.range(offset, offset + pageSize - 1);
           
           const { data, error, count } = await query;
-          if (error) throw error;
+          if (error) {
+            console.error("❌ Query error:", error);
+            throw error;
+          }
           
-          console.log("✅ Fetched data from Supabase:", { rows: data?.length, total: count });
-          return { rows: data || [], total: count || 0 };
+          console.log("📦 Raw data from Supabase:", { data, count });
+          
+          // Add table prefix to column names for display (to match column keys)
+          const prefixedData = (data || []).map(row => {
+            const prefixed = {};
+            Object.keys(row).forEach(key => {
+              prefixed[`${tableName}.${key}`] = row[key];
+            });
+            return prefixed;
+          });
+          
+          console.log("✅ Prefixed data:", { sample: prefixedData[0], total: count });
+          return { rows: prefixedData || [], total: count || 0 };
           
         } else {
-          // Multiple tables - fetch separately and combine (simplified approach)
-          // In a real application, you'd want to handle JOINs properly
-          console.warn("⚠️ Multiple tables detected. Fetching primary table only.");
+          // Multiple tables - fetch from each table and combine
+          console.log("🔍 Multiple tables detected. Fetching from all tables...");
+          
           const primaryTable = tables[0];
           const primaryColumns = selectedColumns
             .filter(col => col.startsWith(`${primaryTable}.`))
@@ -105,9 +127,10 @@ export async function fetchReportData({ page, pageSize, sort, filters, reportId 
             throw new Error("No columns selected for primary table");
           }
           
+          // Fetch from primary table with pagination
           let query = supabase.from(primaryTable).select(primaryColumns.join(','), { count: 'exact' });
           
-          // Apply sorting
+          // Apply sorting on primary table
           if (sort && sort.key) {
             const sortKey = sort.key.includes('.') ? sort.key.split('.')[1] : sort.key;
             if (primaryColumns.includes(sortKey)) {
@@ -119,20 +142,53 @@ export async function fetchReportData({ page, pageSize, sort, filters, reportId 
           const offset = (page - 1) * pageSize;
           query = query.range(offset, offset + pageSize - 1);
           
-          const { data, error, count } = await query;
+          const { data: primaryData, error, count } = await query;
           if (error) throw error;
           
-          // Add table prefix to column names for display
-          const prefixedData = data.map(row => {
-            const prefixed = {};
-            Object.keys(row).forEach(key => {
-              prefixed[`${primaryTable}.${key}`] = row[key];
+          // Fetch data from other tables (without pagination, just get all)
+          const otherTablesData = {};
+          for (let i = 1; i < tables.length; i++) {
+            const tableName = tables[i];
+            const tableColumns = selectedColumns
+              .filter(col => col.startsWith(`${tableName}.`))
+              .map(col => col.replace(`${tableName}.`, ''));
+            
+            if (tableColumns.length > 0) {
+              const { data, error: tableError } = await supabase
+                .from(tableName)
+                .select(tableColumns.join(','))
+                .limit(pageSize);
+              
+              if (!tableError && data && data.length > 0) {
+                otherTablesData[tableName] = data;
+              }
+            }
+          }
+          
+          // Combine data from all tables
+          const combinedData = primaryData.map((primaryRow, idx) => {
+            const combined = {};
+            
+            // Add primary table data with prefix
+            Object.keys(primaryRow).forEach(key => {
+              combined[`${primaryTable}.${key}`] = primaryRow[key];
             });
-            return prefixed;
+            
+            // Add data from other tables with prefix
+            Object.keys(otherTablesData).forEach(tableName => {
+              const tableData = otherTablesData[tableName];
+              if (tableData[idx]) {
+                Object.keys(tableData[idx]).forEach(key => {
+                  combined[`${tableName}.${key}`] = tableData[idx][key];
+                });
+              }
+            });
+            
+            return combined;
           });
           
-          console.log("✅ Fetched data from Supabase:", { rows: prefixedData?.length, total: count });
-          return { rows: prefixedData || [], total: count || 0 };
+          console.log("✅ Fetched data from multiple tables:", { rows: combinedData?.length, total: count });
+          return { rows: combinedData || [], total: count || 0 };
         }
       } catch (err) {
         console.error("❌ Supabase fetch error:", err);

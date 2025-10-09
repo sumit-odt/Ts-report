@@ -6,6 +6,7 @@ import {
   setReportFields,
   getReportFields,
 } from "../services/reportPreferences.js";
+import SearchableSelect from "./components/SearchableSelect.jsx";
 
 const ReportCustomize = () => {
   const { id: reportId } = useParams();
@@ -151,7 +152,6 @@ const ReportCustomize = () => {
 
     // Save the configuration
     setReportFields(reportId, allColumns, tableNames.join(","));
-    alert("Preferences saved successfully!");
     navigate(`/reports/${reportId}`);
   };
 
@@ -203,18 +203,18 @@ const ReportCustomize = () => {
         <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
           <h3 className="font-semibold mb-3 text-gray-700">Add Table</h3>
           <div className="flex gap-3">
-            <select
-              className="flex-1 border rounded-lg p-2"
-              value={currentTable}
-              onChange={(e) => setCurrentTable(e.target.value)}
-            >
-              <option value="">-- Select Table --</option>
-              {availableTables.map((table) => (
-                <option key={table} value={table}>
-                  {table}
-                </option>
-              ))}
-            </select>
+            <div className="flex-1">
+              <SearchableSelect
+                value={currentTable}
+                onChange={(value) => setCurrentTable(value)}
+                options={availableTables.map((table) => ({
+                  value: table,
+                  label: table,
+                }))}
+                placeholder="-- Select Table --"
+                editable={false}
+              />
+            </div>
             <button
               className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition"
               onClick={handleAddTable}

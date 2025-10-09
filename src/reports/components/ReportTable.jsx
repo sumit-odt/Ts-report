@@ -1,7 +1,8 @@
 // src/reports/ReportTable.jsx
 import React, { useEffect, useState } from "react";
 import { getReportFields } from "../../services/reportPreferences.js";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import SearchableSelect from "./SearchableSelect.jsx";
 
 function SortIcon({ active, direction }) {
   return (
@@ -29,6 +30,7 @@ export default function ReportTable({
   customColumns,
 }) {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [persisted, setPersisted] = useState([]);
 
   useEffect(() => {
@@ -76,114 +78,137 @@ export default function ReportTable({
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="table-stretch text-sm" style={{ tableLayout: "auto" }}>
-        <thead className="bg-slate-50 text-slate-600">
-          <tr>
-            {columns.map((c) => (
-              <th
-                key={c.key}
-                className={`px-3 py-2 text-left font-medium whitespace-nowrap ${
-                  c.width || ""
-                }`}
-              >
-                <button
-                  onClick={() => changeSort(c.key)}
-                  className="flex items-center"
-                >
-                  {c.label}{" "}
-                  <SortIcon
-                    active={sort.key === c.key}
-                    direction={sort.direction}
-                  />
-                </button>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {loading && (
-            <tr>
-              <td
-                colSpan={columns.length}
-                className="px-3 py-8 text-center text-slate-500"
-              >
-                Loading…
-              </td>
-            </tr>
+    <div>
+      {/* Customize Button */}
+      <div className="flex items-center justify-between mb-3 px-3">
+        <div className="text-sm text-slate-600">
+          {persisted.length > 0 ? (
+            <span>Showing {persisted.length} custom columns</span>
+          ) : (
+            <span>Using default columns</span>
           )}
-          {!loading && error && (
-            <tr>
-              <td
-                colSpan={columns.length}
-                className="px-3 py-8 text-center text-red-600"
-              >
-                {error}
-              </td>
-            </tr>
-          )}
-          {!loading && !error && rows.length === 0 && (
-            <tr>
-              <td
-                colSpan={columns.length}
-                className="px-3 py-8 text-center text-slate-500"
-              >
-                No data
-              </td>
-            </tr>
-          )}
-          {!loading &&
-            !error &&
-            rows.map((r, idx) => (
-              <tr key={idx} className="even:bg-slate-50/60">
-                {columns.map((c) => (
-                  <td
-                    key={c.key}
-                    className={`px-3 py-2 ${
-                      c.key.includes("Mins") ? "text-right" : ""
-                    }`}
-                  >
-                    {r[c.key] ?? ""}
-                  </td>
-                ))}
-              </tr>
-            ))}
-        </tbody>
-      </table>
-
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-200 p-3 text-sm">
-        <div className="flex items-center gap-2">
-          <span>Rows per page:</span>
-          <select
-            value={pageSize}
-            onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="input w-24 py-1"
-          >
-            {[10, 20, 50, 100].map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            className="btn btn-outline"
-            disabled={page <= 1}
-            onClick={() => onPageChange(page - 1)}
-          >
-            Prev
-          </button>
-          <div>
-            Page {page} of {Math.max(1, Math.ceil(total / pageSize))}
+        {/* <button
+          className="btn btn-outline py-1.5 px-4 text-sm"
+          onClick={() => navigate(`/reports/${id}/customize`)}
+        >
+          Customize Columns
+        </button> */}
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table
+          className="table-stretch text-sm"
+          style={{ tableLayout: "auto" }}
+        >
+          <thead className="bg-slate-50 text-slate-600">
+            <tr>
+              {columns.map((c) => (
+                <th
+                  key={c.key}
+                  className={`px-3 py-2 text-left font-medium whitespace-nowrap ${
+                    c.width || ""
+                  }`}
+                >
+                  <button
+                    onClick={() => changeSort(c.key)}
+                    className="flex items-center"
+                  >
+                    {c.label}{" "}
+                    <SortIcon
+                      active={sort.key === c.key}
+                      direction={sort.direction}
+                    />
+                  </button>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading && (
+              <tr>
+                <td
+                  colSpan={columns.length}
+                  className="px-3 py-8 text-center text-slate-500"
+                >
+                  Loading…
+                </td>
+              </tr>
+            )}
+            {!loading && error && (
+              <tr>
+                <td
+                  colSpan={columns.length}
+                  className="px-3 py-8 text-center text-red-600"
+                >
+                  {error}
+                </td>
+              </tr>
+            )}
+            {!loading && !error && rows.length === 0 && (
+              <tr>
+                <td
+                  colSpan={columns.length}
+                  className="px-3 py-8 text-center text-slate-500"
+                >
+                  No data
+                </td>
+              </tr>
+            )}
+            {!loading &&
+              !error &&
+              rows.map((r, idx) => (
+                <tr key={idx} className="even:bg-slate-50/60">
+                  {columns.map((c) => (
+                    <td
+                      key={c.key}
+                      className={`px-3 py-2 ${
+                        c.key.includes("Mins") ? "text-right" : ""
+                      }`}
+                    >
+                      {r[c.key] ?? ""}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+          </tbody>
+        </table>
+
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-200 p-3 text-sm">
+          <div className="flex items-center gap-2">
+            <span>Rows per page:</span>
+            <div className="w-24">
+              <SearchableSelect
+                value={String(pageSize)}
+                onChange={(value) => onPageSizeChange(Number(value))}
+                options={[10, 20, 50, 100].map((n) => ({
+                  value: String(n),
+                  label: String(n),
+                }))}
+                editable={false}
+              />
+            </div>
           </div>
-          <button
-            className="btn btn-outline"
-            disabled={page >= Math.ceil(total / pageSize)}
-            onClick={() => onPageChange(page + 1)}
-          >
-            Next
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="btn btn-outline"
+              disabled={page <= 1}
+              onClick={() => onPageChange(page - 1)}
+            >
+              Prev
+            </button>
+            <div>
+              Page {page} of {Math.max(1, Math.ceil(total / pageSize))}
+            </div>
+            <button
+              className="btn btn-outline"
+              disabled={page >= Math.ceil(total / pageSize)}
+              onClick={() => onPageChange(page + 1)}
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>
