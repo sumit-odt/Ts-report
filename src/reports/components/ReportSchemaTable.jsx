@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { getSchemaForReport } from "../../services/reportCatalog.js";
 import { getReportFields } from "../../services/reportPreferences.js";
 
-export default function ReportSchemaTable({ reportId }) {
+const ReportSchemaTable = React.memo(function ReportSchemaTable({ reportId }) {
   const initial = useMemo(() => getSchemaForReport(reportId), [reportId]);
   const [rows, setRows] = useState(initial);
 
@@ -64,23 +64,21 @@ export default function ReportSchemaTable({ reportId }) {
     setRows(initial);
   }, [reportId, initial]);
 
-  const editSchema = () => {
+  const editSchema = useCallback(() => {
     const newLabel = prompt("Edit schema name", "Report Schema");
     if (newLabel == null) return;
     // You can implement schema-level editing logic here
-    console.log("Edit schema:", newLabel);
-  };
+  }, []);
 
-  const copySchema = () => {
+  const copySchema = useCallback(() => {
     if (!confirm("Copy entire schema?")) return;
     // You can implement schema copying logic here
-    console.log("Copy schema");
-  };
+  }, []);
 
-  const deleteSchema = () => {
+  const deleteSchema = useCallback(() => {
     if (!confirm("Delete entire schema? This will remove all fields.")) return;
     setRows([]);
-  };
+  }, []);
 
   return (
     <div className="overflow-x-auto">
@@ -123,4 +121,6 @@ export default function ReportSchemaTable({ reportId }) {
       </table>
     </div>
   );
-}
+});
+
+export default ReportSchemaTable;

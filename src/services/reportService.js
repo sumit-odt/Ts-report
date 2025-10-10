@@ -3,7 +3,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { formatMMDDYYYY } from './date.js';
 import { supabase } from './supabaseClient.js';
-import { getReportFields, getReportTableName } from './reportPreferences.js';
+import { getReportFields, getReportTableName, getReportFilters } from './reportPreferences.js';
 
 // Mock dataset generator
 const EMPLOYEES = ['Sumit Khanvilkar', 'Asha Patel', 'Rahul Sharma', 'Priya Mehta', 'Ravi Kumar'];
@@ -31,7 +31,14 @@ function generateMockRow(dayIndex = 0) {
   };
 }
 
-const MOCK_DATA = Array.from({ length: 250 }, (_, i) => generateMockRow(i));
+// Lazy load mock data only when needed
+let MOCK_DATA_CACHE = null;
+function getMockData() {
+  if (!MOCK_DATA_CACHE) {
+    MOCK_DATA_CACHE = Array.from({ length: 250 }, (_, i) => generateMockRow(i));
+  }
+  return MOCK_DATA_CACHE;
+}
 
 function applyFilters(rows, { startDate, endDate, location, status, search }) {
   return rows.filter((r) => {
@@ -67,26 +74,54 @@ export async function fetchReportData({ page, pageSize, sort, filters, reportId 
     if (tableNames && selectedColumns && selectedColumns.length > 0) {
       try {
         const tables = tableNames.split(',');
-        console.log("🔍 Fetching from Supabase:", { tables, selectedColumns, page, pageSize });
         
         if (tables.length === 1) {
           // Single table query
           const tableName = tables[0];
           const columns = selectedColumns.map(col => col.replace(`${tableName}.`, ''));
           
-          console.log("📊 Single table query:", { tableName, columns, selectedColumns });
-          
           let query = supabase.from(tableName).select(columns.join(','), { count: 'exact' });
+          
+          // Apply filters
+          const savedFilters = getReportFilters(reportId);
+          if (savedFilters && savedFilters.items) {
+            savedFilters.items.forEach(filter => {
+              if (filter.field && filter.condition && filter.value) {
+                const fieldName = filter.field.includes('.') ? filter.field.split('.')[1] : filter.field;
+                
+                switch (filter.condition) {
+                  case 'eq':
+                    query = query.eq(fieldName, filter.value);
+                    break;
+                  case 'neq':
+                    query = query.neq(fieldName, filter.value);
+                    break;
+                  case 'gt':
+                    query = query.gt(fieldName, filter.value);
+                    break;
+                  case 'lt':
+                    query = query.lt(fieldName, filter.value);
+                    break;
+                  case 'contains':
+                    query = query.ilike(fieldName, `%${filter.value}%`);
+                    break;
+                  case 'starts':
+                    query = query.ilike(fieldName, `${filter.value}%`);
+                    break;
+                  case 'ends':
+                    query = query.ilike(fieldName, `%${filter.value}`);
+                    break;
+                }
+              }
+            });
+          }
           
           // Apply sorting
           if (sort && sort.key) {
             const sortKey = sort.key.includes('.') ? sort.key.split('.')[1] : sort.key;
-            console.log("🔀 Sorting by:", { originalKey: sort.key, sortKey, direction: sort.direction });
             // Only apply sorting if the column exists in the selected columns
             if (columns.includes(sortKey)) {
               query = query.order(sortKey, { ascending: sort.direction === 'asc' });
-            } else {
-              console.warn("⚠️ Sort column not in selected columns, skipping sort");
             }
           }
           
@@ -95,12 +130,7 @@ export async function fetchReportData({ page, pageSize, sort, filters, reportId 
           query = query.range(offset, offset + pageSize - 1);
           
           const { data, error, count } = await query;
-          if (error) {
-            console.error("❌ Query error:", error);
-            throw error;
-          }
-          
-          console.log("📦 Raw data from Supabase:", { data, count });
+          if (error) throw error;
           
           // Add table prefix to column names for display (to match column keys)
           const prefixedData = (data || []).map(row => {
@@ -111,13 +141,10 @@ export async function fetchReportData({ page, pageSize, sort, filters, reportId 
             return prefixed;
           });
           
-          console.log("✅ Prefixed data:", { sample: prefixedData[0], total: count });
           return { rows: prefixedData || [], total: count || 0 };
           
         } else {
           // Multiple tables - fetch from each table and combine
-          console.log("🔍 Multiple tables detected. Fetching from all tables...");
-          
           const primaryTable = tables[0];
           const primaryColumns = selectedColumns
             .filter(col => col.startsWith(`${primaryTable}.`))
@@ -129,6 +156,44 @@ export async function fetchReportData({ page, pageSize, sort, filters, reportId 
           
           // Fetch from primary table with pagination
           let query = supabase.from(primaryTable).select(primaryColumns.join(','), { count: 'exact' });
+          
+          // Apply filters to primary table
+          const savedFilters = getReportFilters(reportId);
+          if (savedFilters && savedFilters.items) {
+            savedFilters.items.forEach(filter => {
+              if (filter.field && filter.condition && filter.value) {
+                const fieldName = filter.field.includes('.') ? filter.field.split('.')[1] : filter.field;
+                const filterTable = filter.field.includes('.') ? filter.field.split('.')[0] : primaryTable;
+                
+                // Only apply if this filter is for the primary table
+                if (filterTable === primaryTable && primaryColumns.includes(fieldName)) {
+                  switch (filter.condition) {
+                    case 'eq':
+                      query = query.eq(fieldName, filter.value);
+                      break;
+                    case 'neq':
+                      query = query.neq(fieldName, filter.value);
+                      break;
+                    case 'gt':
+                      query = query.gt(fieldName, filter.value);
+                      break;
+                    case 'lt':
+                      query = query.lt(fieldName, filter.value);
+                      break;
+                    case 'contains':
+                      query = query.ilike(fieldName, `%${filter.value}%`);
+                      break;
+                    case 'starts':
+                      query = query.ilike(fieldName, `${filter.value}%`);
+                      break;
+                    case 'ends':
+                      query = query.ilike(fieldName, `%${filter.value}`);
+                      break;
+                  }
+                }
+              }
+            });
+          }
           
           // Apply sorting on primary table
           if (sort && sort.key) {
@@ -187,20 +252,19 @@ export async function fetchReportData({ page, pageSize, sort, filters, reportId 
             return combined;
           });
           
-          console.log("✅ Fetched data from multiple tables:", { rows: combinedData?.length, total: count });
           return { rows: combinedData || [], total: count || 0 };
         }
       } catch (err) {
-        console.error("❌ Supabase fetch error:", err);
+        console.error("Supabase fetch error:", err);
         throw new Error(`Failed to fetch data: ${err.message}`);
       }
     }
   }
   
   // Fallback to mock data if no custom table is configured
-  console.log("⚠️ Using mock data (no custom table configured)");
   await new Promise((r) => setTimeout(r, 350)); // simulate latency
-  let rows = applyFilters(MOCK_DATA, filters || {});
+  const mockData = getMockData();
+  let rows = applyFilters(mockData, filters || {});
   rows = applySort(rows, sort || { key: 'date', direction: 'desc' });
   const total = rows.length;
   const offset = (page - 1) * pageSize;
@@ -209,15 +273,29 @@ export async function fetchReportData({ page, pageSize, sort, filters, reportId 
 }
 
 export function exportCSV(rows, fileName = 'report') {
-  const headers = Object.keys(rows[0] || {});
-  const csv = [headers.join(','), ...rows.map((r) => headers.map((h) => JSON.stringify(r[h] ?? '')).join(','))].join('\n');
+  if (!rows || rows.length === 0) {
+    alert('No data to export');
+    return;
+  }
+  const headers = Object.keys(rows[0]);
+  const csv = [
+    headers.join(','),
+    ...rows.map((r) => headers.map((h) => JSON.stringify(r[h] ?? '')).join(','))
+  ].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `${fileName}.csv`; a.click(); URL.revokeObjectURL(url);
+  a.href = url;
+  a.download = `${fileName}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export function exportExcel(rows, fileName = 'report') {
+  if (!rows || rows.length === 0) {
+    alert('No data to export');
+    return;
+  }
   const sheet = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, sheet, 'Report');
@@ -225,8 +303,12 @@ export function exportExcel(rows, fileName = 'report') {
 }
 
 export function exportPDF(rows, fileName = 'report') {
+  if (!rows || rows.length === 0) {
+    alert('No data to export');
+    return;
+  }
   const doc = new jsPDF('l', 'pt');
-  const headers = Object.keys(rows[0] || {});
+  const headers = Object.keys(rows[0]);
   const data = rows.map((r) => headers.map((h) => r[h]));
   doc.text('Report', 40, 40);
   autoTable(doc, { startY: 60, head: [headers], body: data });

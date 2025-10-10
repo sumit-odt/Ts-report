@@ -1,7 +1,11 @@
 // src/reports/ReportFilter.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getReportFields } from "../services/reportPreferences.js";
+import {
+  getReportFields,
+  setReportFilters,
+  getReportFilters,
+} from "../services/reportPreferences.js";
 import SearchableSelect from "./components/SearchableSelect.jsx";
 
 const CONDITIONS = [
@@ -22,19 +26,26 @@ export default function ReportFilter() {
   const [logic, setLogic] = useState("AND");
   const [loading, setLoading] = useState(true);
 
-  const loadFields = () => {
+  const loadFields = useCallback(() => {
     setLoading(true);
     const savedFields = getReportFields(id);
     const options = (savedFields || []).map((f) => ({ value: f, label: f }));
     setFieldOptions(options);
 
-    setItems(
-      options.length > 0
-        ? [{ field: options[0].value, condition: "eq", value: "" }]
-        : []
-    );
+    // Load saved filters if any
+    const savedFilters = getReportFilters(id);
+    if (savedFilters && savedFilters.items && savedFilters.items.length > 0) {
+      setItems(savedFilters.items);
+      setLogic(savedFilters.logic || "AND");
+    } else {
+      setItems(
+        options.length > 0
+          ? [{ field: options[0].value, condition: "eq", value: "" }]
+          : []
+      );
+    }
     setLoading(false);
-  };
+  }, [id]);
 
   useEffect(() => {
     loadFields();
@@ -43,54 +54,152 @@ export default function ReportFilter() {
     };
     window.addEventListener("reportFieldsUpdated", handler);
     return () => window.removeEventListener("reportFieldsUpdated", handler);
-  }, [id]);
+  }, [id, loadFields]);
 
-  const updateItem = (idx, changes) =>
-    setItems((prev) =>
-      prev.map((it, i) => (i === idx ? { ...it, ...changes } : it))
-    );
+  const updateItem = useCallback(
+    (idx, changes) =>
+      setItems((prev) =>
+        prev.map((it, i) => (i === idx ? { ...it, ...changes } : it))
+      ),
+    []
+  );
 
-  const addItem = () => {
+  const addItem = useCallback(() => {
     if (fieldOptions.length === 0) return;
     setItems((prev) => [
       ...prev,
       { field: fieldOptions[0].value, condition: "eq", value: "" },
     ]);
-  };
+  }, [fieldOptions]);
 
-  const removeItem = (idx) =>
-    setItems((prev) => prev.filter((_, i) => i !== idx));
+  const removeItem = useCallback(
+    (idx) => setItems((prev) => prev.filter((_, i) => i !== idx)),
+    []
+  );
 
-  const apply = () => {
-    console.log("APPLY_FILTER", { reportId: id, logic, items });
+  const apply = useCallback(() => {
+    // Save filters to localStorage
+    const filterData = { items, logic };
+    setReportFilters(id, filterData);
+
+    // Dispatch event to notify other components
+    window.dispatchEvent(
+      new CustomEvent("reportFiltersUpdated", {
+        detail: { reportId: id, filters: filterData },
+      })
+    );
+
+    // Navigate back to report
     navigate(`/reports/${id}`);
-  };
+  }, [id, items, logic, navigate]);
 
-  const clear = () => {
+  const clear = useCallback(() => {
+    // Clear filters from localStorage
+    setReportFilters(id, null);
+
+    // Reset items
     if (fieldOptions.length > 0) {
       setItems([{ field: fieldOptions[0].value, condition: "eq", value: "" }]);
     } else {
       setItems([]);
     }
-  };
+
+    // Dispatch event to notify report page
+    window.dispatchEvent(
+      new CustomEvent("reportFiltersUpdated", {
+        detail: { reportId: id, filters: null },
+      })
+    );
+
+    // Navigate back to report
+    navigate(`/reports/${id}`);
+  }, [fieldOptions, id, navigate]);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Filters</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Filter Report</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Add conditions to filter your data
+          </p>
+        </div>
         <button
           className="btn btn-outline"
-          onClick={() => navigate(`/reports`)}
+          onClick={() => navigate(`/reports/${id}`)}
         >
-          Back
+          ← Back to Report
         </button>
       </div>
 
-      <div className="card p-4 space-y-4">
-        {loading && <p>Loading fields…</p>}
+      <div className="card p-6 space-y-4">
+        {loading && (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          </div>
+        )}
         {!loading && fieldOptions.length === 0 && (
-          <div className="text-slate-500 text-sm mb-2">
-            No fields selected in Report Customize for this report.
+          <div className="text-center py-12">
+            <svg
+              className="w-12 h-12 mx-auto text-slate-300 mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+              />
+            </svg>
+            <p className="text-slate-600 font-medium mb-2">
+              No columns available
+            </p>
+            <p className="text-sm text-slate-500 mb-4">
+              Please customize your report first to select columns
+            </p>
+            <button
+              className="btn btn-primary"
+              onClick={() => navigate(`/reports/${id}/customize`)}
+            >
+              Customize Report
+            </button>
+          </div>
+        )}
+
+        {!loading && fieldOptions.length > 0 && (
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-600">Combine with</span>
+              <div className="inline-flex overflow-hidden rounded-lg border border-slate-300">
+                <button
+                  type="button"
+                  className={`px-3 py-1.5 text-sm ${
+                    logic === "AND"
+                      ? "bg-indigo-600 text-white"
+                      : "hover:bg-slate-100"
+                  }`}
+                  onClick={() => setLogic("AND")}
+                >
+                  AND
+                </button>
+                <button
+                  type="button"
+                  className={`px-3 py-1.5 text-sm border-l border-slate-300 ${
+                    logic === "OR"
+                      ? "bg-indigo-600 text-white"
+                      : "hover:bg-slate-100"
+                  }`}
+                  onClick={() => setLogic("OR")}
+                >
+                  OR
+                </button>
+              </div>
+            </div>
+            <button className="btn btn-outline" onClick={addItem}>
+              Add Condition
+            </button>
           </div>
         )}
 
@@ -141,24 +250,55 @@ export default function ReportFilter() {
               <div className="md:col-span-1 flex items-end justify-end">
                 <button
                   type="button"
-                  className="btn btn-outline p-2 rounded-full"
-                  title="Remove condition"
+                  className="btn btn-outline p-2 rounded-full hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition"
+                  title="Remove this condition"
                   onClick={() => removeItem(idx)}
                 >
-                  ❌
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
                 </button>
               </div>
             </div>
           ))}
 
         {!loading && fieldOptions.length > 0 && (
-          <div className="flex items-center justify-end gap-2">
-            <button className="btn btn-outline" onClick={clear}>
-              Clear Filter
-            </button>
-            <button className="btn btn-primary" onClick={apply}>
-              Apply Filter
-            </button>
+          <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+            <p className="text-sm text-slate-600">
+              {items.filter((it) => it.value).length} of {items.length}{" "}
+              condition(s) configured
+            </p>
+            <div className="flex gap-2">
+              <button className="btn btn-outline px-5 py-2" onClick={clear}>
+                Clear All
+              </button>
+              <button className="btn btn-primary px-5 py-2" onClick={apply}>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                Apply Filters
+              </button>
+            </div>
           </div>
         )}
       </div>

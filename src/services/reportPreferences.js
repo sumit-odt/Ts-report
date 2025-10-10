@@ -3,10 +3,7 @@ import { supabase } from "./supabaseClient.js";
 
 // Use localStorage as primary storage for now (Supabase table may not be set up yet)
 export function setReportFields(reportId, selectedColumns, tableName) {
-  if (!reportId) {
-    console.warn("setReportFields: No reportId provided");
-    return;
-  }
+  if (!reportId) return;
   try {
     // Store in localStorage
     const key = `report_fields_${reportId}`;
@@ -16,7 +13,6 @@ export function setReportFields(reportId, selectedColumns, tableName) {
       updatedAt: new Date().toISOString(),
     };
     localStorage.setItem(key, JSON.stringify(data));
-    console.log("✅ Saved to localStorage:", { reportId, selectedColumns, tableName });
     
     // Dispatch event to update components immediately
     window.dispatchEvent(
@@ -24,7 +20,6 @@ export function setReportFields(reportId, selectedColumns, tableName) {
         detail: { reportId, selectedColumns },
       })
     );
-    console.log("✅ Dispatched reportFieldsUpdated event");
     
     // Also try to save to Supabase (optional, will fail silently if table doesn't exist)
     supabase.from("report_preferences").upsert([
@@ -33,27 +28,24 @@ export function setReportFields(reportId, selectedColumns, tableName) {
         table_name: tableName,
         selected_columns: selectedColumns,
       },
-    ]).catch((e) => console.log("Supabase save skipped:", e.message));
+    ]).then(({ error }) => {
+      if (error) console.log("Supabase save skipped:", error.message);
+    });
   } catch (e) {
     console.error("setReportFields error", e);
   }
 }
 
 export function getReportFields(reportId) {
-  if (!reportId) {
-    console.warn("getReportFields: No reportId provided");
-    return [];
-  }
+  if (!reportId) return [];
   try {
     // Get from localStorage
     const key = `report_fields_${reportId}`;
     const stored = localStorage.getItem(key);
     if (stored) {
       const data = JSON.parse(stored);
-      console.log("✅ Retrieved from localStorage:", { reportId, fields: data.selectedColumns });
       return data.selectedColumns || [];
     }
-    console.log("⚠️ No saved fields found for:", reportId);
     return [];
   } catch (e) {
     console.error("getReportFields error", e);
@@ -97,5 +89,31 @@ export function setReportLastViewed(reportId) {
     localStorage.setItem(key, new Date().toISOString());
   } catch (e) {
     console.error("setReportLastViewed error", e);
+  }
+}
+
+export function setReportFilters(reportId, filters) {
+  if (!reportId) return;
+  try {
+    const key = `report_filters_${reportId}`;
+    if (filters === null) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, JSON.stringify(filters));
+    }
+  } catch (e) {
+    console.error("setReportFilters error", e);
+  }
+}
+
+export function getReportFilters(reportId) {
+  if (!reportId) return null;
+  try {
+    const key = `report_filters_${reportId}`;
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : null;
+  } catch (e) {
+    console.error("getReportFilters error", e);
+    return null;
   }
 }

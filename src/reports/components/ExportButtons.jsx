@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   exportCSV,
   exportExcel,
   exportPDF,
 } from "../../services/reportService.js";
 
-export default function ExportButtons({ rows, fileName = "report" }) {
+const ExportButtons = React.memo(({ rows, fileName = "report" }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -20,20 +20,23 @@ export default function ExportButtons({ rows, fileName = "report" }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleExport = (type) => {
-    switch (type) {
-      case "csv":
-        exportCSV(rows, fileName);
-        break;
-      case "excel":
-        exportExcel(rows, fileName);
-        break;
-      case "pdf":
-        exportPDF(rows, fileName);
-        break;
-    }
-    setIsOpen(false);
-  };
+  const handleExport = useCallback(
+    (type) => {
+      switch (type) {
+        case "csv":
+          exportCSV(rows, fileName);
+          break;
+        case "excel":
+          exportExcel(rows, fileName);
+          break;
+        case "pdf":
+          exportPDF(rows, fileName);
+          break;
+      }
+      setIsOpen(false);
+    },
+    [rows, fileName]
+  );
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -109,4 +112,6 @@ export default function ExportButtons({ rows, fileName = "report" }) {
       )}
     </div>
   );
-}
+});
+
+export default ExportButtons;

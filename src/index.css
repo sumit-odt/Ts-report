@@ -10,14 +10,35 @@
   @apply bg-white rounded-xl shadow-sm border border-slate-200;
 }
 .btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors; 
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200; 
 }
-.btn-primary { @apply bg-indigo-600 text-white hover:bg-indigo-700; }
-.btn-outline { @apply border border-slate-300 hover:bg-slate-100; }
+.btn-primary { 
+  @apply bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-indigo-600 disabled:hover:shadow-none; 
+}
+.btn-outline { 
+  @apply border border-slate-300 hover:bg-slate-100 hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white; 
+}
 .input { @apply w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500; }
 
 /* Table should stretch to container width to avoid right-side gaps when columns change */
 .table-stretch { @apply w-full; }
+
+/* Ensure dropdowns are always visible above other content */
+[class*="bottom-full"] {
+  transform: translateY(0);
+}
+
+/* Toast animation */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
 
 /* Hide scrollbar for small dropdowns */
 .overflow-hidden {

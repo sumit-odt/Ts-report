@@ -1,10 +1,10 @@
 // src/reports/ReportTable.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { getReportFields } from "../../services/reportPreferences.js";
 import { useParams, useNavigate } from "react-router-dom";
 import SearchableSelect from "./SearchableSelect.jsx";
 
-function SortIcon({ active, direction }) {
+const SortIcon = React.memo(({ active, direction }) => {
   return (
     <span
       className={`ml-1 inline-block transition-transform ${
@@ -14,7 +14,22 @@ function SortIcon({ active, direction }) {
       {direction === "asc" ? "▲" : "▼"}
     </span>
   );
-}
+});
+
+const TableRow = React.memo(({ row, columns }) => {
+  return (
+    <tr className="even:bg-slate-50/60">
+      {columns.map((c) => (
+        <td
+          key={c.key}
+          className={`px-3 py-2 ${c.key.includes("Mins") ? "text-right" : ""}`}
+        >
+          {row[c.key] ?? ""}
+        </td>
+      ))}
+    </tr>
+  );
+});
 
 export default function ReportTable({
   rows,
@@ -57,7 +72,7 @@ export default function ReportTable({
     { key: "location", label: "Location" },
   ];
 
-  const columns = React.useMemo(() => {
+  const columns = useMemo(() => {
     const selected = Array.isArray(customColumns) ? customColumns : persisted;
     if (Array.isArray(selected) && selected.length > 0) {
       const byKey = Object.fromEntries(baseDefaults.map((c) => [c.key, c]));
@@ -66,38 +81,65 @@ export default function ReportTable({
     return baseDefaults;
   }, [persisted, customColumns]);
 
-  const changeSort = (key) => {
-    if (sort.key === key) {
-      onSortChange({
-        key,
-        direction: sort.direction === "asc" ? "desc" : "asc",
-      });
-    } else {
-      onSortChange({ key, direction: "asc" });
-    }
-  };
+  const changeSort = useCallback(
+    (key) => {
+      if (sort.key === key) {
+        onSortChange({
+          key,
+          direction: sort.direction === "asc" ? "desc" : "asc",
+        });
+      } else {
+        onSortChange({ key, direction: "asc" });
+      }
+    },
+    [sort.key, sort.direction, onSortChange]
+  );
+
+  const handlePageSizeChange = useCallback(
+    (value) => {
+      onPageSizeChange(Number(value));
+    },
+    [onPageSizeChange]
+  );
+
+  const pageSizeOptions = useMemo(
+    () =>
+      [10, 20, 50, 100].map((n) => ({
+        value: String(n),
+        label: String(n),
+      })),
+    []
+  );
 
   return (
     <div>
-      {/* Customize Button */}
-      <div className="flex items-center justify-between mb-3 px-3">
+      {/* Column Info */}
+      <div className="flex items-center justify-between mb-3 px-4 py-3 bg-slate-50 border-b border-slate-200">
         <div className="text-sm text-slate-600">
           {persisted.length > 0 ? (
-            <span>Showing {persisted.length} custom columns</span>
+            <span className="flex items-center gap-2">
+              <svg
+                className="w-4 h-4 text-indigo-600"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                <path
+                  fillRule="evenodd"
+                  d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Showing {persisted.length} custom columns
+            </span>
           ) : (
-            <span>Using default columns</span>
+            <span className="text-slate-500">Using default columns</span>
           )}
         </div>
-        {/* <button
-          className="btn btn-outline py-1.5 px-4 text-sm"
-          onClick={() => navigate(`/reports/${id}/customize`)}
-        >
-          Customize Columns
-        </button> */}
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" style={{ overflowY: "visible" }}>
         <table
           className="table-stretch text-sm"
           style={{ tableLayout: "auto" }}
@@ -113,7 +155,8 @@ export default function ReportTable({
                 >
                   <button
                     onClick={() => changeSort(c.key)}
-                    className="flex items-center"
+                    className="flex items-center hover:text-indigo-600 transition"
+                    aria-label={`Sort by ${c.label}`}
                   >
                     {c.label}{" "}
                     <SortIcon
@@ -159,18 +202,7 @@ export default function ReportTable({
             {!loading &&
               !error &&
               rows.map((r, idx) => (
-                <tr key={idx} className="even:bg-slate-50/60">
-                  {columns.map((c) => (
-                    <td
-                      key={c.key}
-                      className={`px-3 py-2 ${
-                        c.key.includes("Mins") ? "text-right" : ""
-                      }`}
-                    >
-                      {r[c.key] ?? ""}
-                    </td>
-                  ))}
-                </tr>
+                <TableRow key={idx} row={r} columns={columns} />
               ))}
           </tbody>
         </table>
@@ -181,11 +213,8 @@ export default function ReportTable({
             <div className="w-24">
               <SearchableSelect
                 value={String(pageSize)}
-                onChange={(value) => onPageSizeChange(Number(value))}
-                options={[10, 20, 50, 100].map((n) => ({
-                  value: String(n),
-                  label: String(n),
-                }))}
+                onChange={handlePageSizeChange}
+                options={pageSizeOptions}
                 editable={false}
               />
             </div>
@@ -195,18 +224,46 @@ export default function ReportTable({
               className="btn btn-outline"
               disabled={page <= 1}
               onClick={() => onPageChange(page - 1)}
+              aria-label="Previous page"
             >
-              Prev
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+              Previous
             </button>
-            <div>
+            <div className="px-3 py-1 bg-slate-100 rounded text-sm font-medium">
               Page {page} of {Math.max(1, Math.ceil(total / pageSize))}
             </div>
             <button
               className="btn btn-outline"
               disabled={page >= Math.ceil(total / pageSize)}
               onClick={() => onPageChange(page + 1)}
+              aria-label="Next page"
             >
               Next
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
             </button>
           </div>
         </div>
