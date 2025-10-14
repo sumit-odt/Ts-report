@@ -1,9 +1,15 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { getSchemaForReport } from "../../services/reportCatalog.js";
+import {
+  getSchemaForReport,
+  getReportByIdWithCustom,
+} from "../../services/reportCatalog.js";
 import { getReportFields } from "../../services/reportPreferences.js";
 
 const ReportSchemaTable = React.memo(function ReportSchemaTable({ reportId }) {
-  const initial = useMemo(() => getSchemaForReport(reportId), [reportId]);
+  const initial = useMemo(() => {
+    const report = getReportByIdWithCustom(reportId);
+    return report?.schema || getSchemaForReport(reportId);
+  }, [reportId]);
   const [rows, setRows] = useState(initial);
 
   // Infer a sensible data type from a generic field name when schema info is missing

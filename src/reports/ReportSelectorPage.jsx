@@ -1,6 +1,6 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getReportCatalog } from "../services/reportCatalog.js";
+import { getReportCatalogWithCustom } from "../services/reportCatalog.js";
 import { getReportLastViewed } from "../services/reportPreferences.js";
 import { formatMMDDYYYY } from "../services/date.js";
 import ReportSchemaTable from "./components/ReportSchemaTable.jsx";
@@ -72,7 +72,7 @@ function AdjustIcon() {
 
 export default function ReportSelectorPage() {
   const navigate = useNavigate();
-  const catalog = useMemo(() => getReportCatalog(), []);
+  const [catalog, setCatalog] = useState(() => getReportCatalogWithCustom());
   const [expanded, setExpanded] = useState({}); // reportId -> boolean
 
   const toggle = useCallback(
@@ -80,14 +80,44 @@ export default function ReportSelectorPage() {
     []
   );
 
+  // Listen for catalog updates
+  useEffect(() => {
+    const handler = () => {
+      setCatalog(getReportCatalogWithCustom());
+    };
+    window.addEventListener("reportCatalogUpdated", handler);
+    return () => window.removeEventListener("reportCatalogUpdated", handler);
+  }, []);
+
   return (
     <div className="space-y-4">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Reports</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Browse and manage your reports
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Reports</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Browse and manage your reports
+          </p>
+        </div>
+        <button
+          className="btn btn-primary"
+          onClick={() => navigate("/reports/create")}
+        >
+          <svg
+            className="w-4 h-4 mr-2 inline-block"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          Create New Report
+        </button>
       </div>
 
       <div className="card overflow-hidden">

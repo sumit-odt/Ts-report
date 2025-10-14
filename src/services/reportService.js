@@ -84,36 +84,69 @@ export async function fetchReportData({ page, pageSize, sort, filters, reportId 
           
           // Apply filters
           const savedFilters = getReportFilters(reportId);
-          if (savedFilters && savedFilters.items) {
-            savedFilters.items.forEach(filter => {
-              if (filter.field && filter.condition && filter.value) {
-                const fieldName = filter.field.includes('.') ? filter.field.split('.')[1] : filter.field;
+          if (savedFilters && savedFilters.items && savedFilters.items.length > 0) {
+            const validFilters = savedFilters.items.filter(f => f.field && f.condition && f.value);
+            
+            if (validFilters.length > 0) {
+              const logic = savedFilters.logic || 'AND';
+              
+              if (logic === 'OR' && validFilters.length > 1) {
+                // Build OR condition string for Supabase
+                const orConditions = validFilters.map(filter => {
+                  const fieldName = filter.field.includes('.') ? filter.field.split('.')[1] : filter.field;
+                  
+                  switch (filter.condition) {
+                    case 'eq':
+                      return `${fieldName}.eq.${filter.value}`;
+                    case 'neq':
+                      return `${fieldName}.neq.${filter.value}`;
+                    case 'gt':
+                      return `${fieldName}.gt.${filter.value}`;
+                    case 'lt':
+                      return `${fieldName}.lt.${filter.value}`;
+                    case 'contains':
+                      return `${fieldName}.ilike.%${filter.value}%`;
+                    case 'starts':
+                      return `${fieldName}.ilike.${filter.value}%`;
+                    case 'ends':
+                      return `${fieldName}.ilike.%${filter.value}`;
+                    default:
+                      return `${fieldName}.eq.${filter.value}`;
+                  }
+                }).join(',');
                 
-                switch (filter.condition) {
-                  case 'eq':
-                    query = query.eq(fieldName, filter.value);
-                    break;
-                  case 'neq':
-                    query = query.neq(fieldName, filter.value);
-                    break;
-                  case 'gt':
-                    query = query.gt(fieldName, filter.value);
-                    break;
-                  case 'lt':
-                    query = query.lt(fieldName, filter.value);
-                    break;
-                  case 'contains':
-                    query = query.ilike(fieldName, `%${filter.value}%`);
-                    break;
-                  case 'starts':
-                    query = query.ilike(fieldName, `${filter.value}%`);
-                    break;
-                  case 'ends':
-                    query = query.ilike(fieldName, `%${filter.value}`);
-                    break;
-                }
+                query = query.or(orConditions);
+              } else {
+                // Apply AND logic (default behavior when chaining)
+                validFilters.forEach(filter => {
+                  const fieldName = filter.field.includes('.') ? filter.field.split('.')[1] : filter.field;
+                  
+                  switch (filter.condition) {
+                    case 'eq':
+                      query = query.eq(fieldName, filter.value);
+                      break;
+                    case 'neq':
+                      query = query.neq(fieldName, filter.value);
+                      break;
+                    case 'gt':
+                      query = query.gt(fieldName, filter.value);
+                      break;
+                    case 'lt':
+                      query = query.lt(fieldName, filter.value);
+                      break;
+                    case 'contains':
+                      query = query.ilike(fieldName, `%${filter.value}%`);
+                      break;
+                    case 'starts':
+                      query = query.ilike(fieldName, `${filter.value}%`);
+                      break;
+                    case 'ends':
+                      query = query.ilike(fieldName, `%${filter.value}`);
+                      break;
+                  }
+                });
               }
-            });
+            }
           }
           
           // Apply sorting
@@ -159,14 +192,48 @@ export async function fetchReportData({ page, pageSize, sort, filters, reportId 
           
           // Apply filters to primary table
           const savedFilters = getReportFilters(reportId);
-          if (savedFilters && savedFilters.items) {
-            savedFilters.items.forEach(filter => {
-              if (filter.field && filter.condition && filter.value) {
-                const fieldName = filter.field.includes('.') ? filter.field.split('.')[1] : filter.field;
-                const filterTable = filter.field.includes('.') ? filter.field.split('.')[0] : primaryTable;
+          if (savedFilters && savedFilters.items && savedFilters.items.length > 0) {
+            const validFilters = savedFilters.items.filter(f => {
+              if (!f.field || !f.condition || !f.value) return false;
+              const fieldName = f.field.includes('.') ? f.field.split('.')[1] : f.field;
+              const filterTable = f.field.includes('.') ? f.field.split('.')[0] : primaryTable;
+              return filterTable === primaryTable && primaryColumns.includes(fieldName);
+            });
+            
+            if (validFilters.length > 0) {
+              const logic = savedFilters.logic || 'AND';
+              
+              if (logic === 'OR' && validFilters.length > 1) {
+                // Build OR condition string for Supabase
+                const orConditions = validFilters.map(filter => {
+                  const fieldName = filter.field.includes('.') ? filter.field.split('.')[1] : filter.field;
+                  
+                  switch (filter.condition) {
+                    case 'eq':
+                      return `${fieldName}.eq.${filter.value}`;
+                    case 'neq':
+                      return `${fieldName}.neq.${filter.value}`;
+                    case 'gt':
+                      return `${fieldName}.gt.${filter.value}`;
+                    case 'lt':
+                      return `${fieldName}.lt.${filter.value}`;
+                    case 'contains':
+                      return `${fieldName}.ilike.%${filter.value}%`;
+                    case 'starts':
+                      return `${fieldName}.ilike.${filter.value}%`;
+                    case 'ends':
+                      return `${fieldName}.ilike.%${filter.value}`;
+                    default:
+                      return `${fieldName}.eq.${filter.value}`;
+                  }
+                }).join(',');
                 
-                // Only apply if this filter is for the primary table
-                if (filterTable === primaryTable && primaryColumns.includes(fieldName)) {
+                query = query.or(orConditions);
+              } else {
+                // Apply AND logic (default behavior when chaining)
+                validFilters.forEach(filter => {
+                  const fieldName = filter.field.includes('.') ? filter.field.split('.')[1] : filter.field;
+                  
                   switch (filter.condition) {
                     case 'eq':
                       query = query.eq(fieldName, filter.value);
@@ -190,9 +257,9 @@ export async function fetchReportData({ page, pageSize, sort, filters, reportId 
                       query = query.ilike(fieldName, `%${filter.value}`);
                       break;
                   }
-                }
+                });
               }
-            });
+            }
           }
           
           // Apply sorting on primary table

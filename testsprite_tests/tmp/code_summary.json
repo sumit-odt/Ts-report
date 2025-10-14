@@ -1,0 +1,129 @@
+{
+  "tech_stack": [
+    "JavaScript",
+    "React 18",
+    "Vite 5",
+    "Tailwind CSS",
+    "React Router DOM",
+    "Supabase",
+    "jsPDF",
+    "xlsx",
+    "LocalStorage"
+  ],
+  "features": [
+    {
+      "name": "Report Catalog Browser",
+      "description": "Displays available reports organized by categories with metadata like last viewed date and execution time. Users can expand reports to view their schema definition.",
+      "files": [
+        "src/reports/ReportSelectorPage.jsx",
+        "src/services/reportCatalog.js"
+      ]
+    },
+    {
+      "name": "Report Schema Display",
+      "description": "Shows detailed schema information for each report including field types, formats, required status, and calculations.",
+      "files": [
+        "src/reports/components/ReportSchemaTable.jsx",
+        "src/services/reportCatalog.js"
+      ]
+    },
+    {
+      "name": "Report Display and Data Table",
+      "description": "Main report view with paginated, sortable table displaying report data with configurable page sizes and navigation controls.",
+      "files": [
+        "src/reports/ReportPage.jsx",
+        "src/reports/components/ReportTable.jsx"
+      ]
+    },
+    {
+      "name": "Column Customization",
+      "description": "Allows users to select multiple Supabase tables and choose specific columns to display in their custom reports. Supports multi-table joins and column prefixing.",
+      "files": [
+        "src/reports/ReportCustomize.jsx",
+        "src/services/reportPreferences.js"
+      ]
+    },
+    {
+      "name": "Advanced Filtering System",
+      "description": "Comprehensive filtering interface with multiple conditions (equals, not equals, greater than, less than, contains, starts with, ends with) and support for AND/OR logical operations.",
+      "files": [
+        "src/reports/ReportFilter.jsx",
+        "src/services/reportPreferences.js"
+      ]
+    },
+    {
+      "name": "Data Export Functionality",
+      "description": "Exports report data to multiple formats including CSV, Excel (XLSX), and PDF with formatted tables and headers.",
+      "files": [
+        "src/reports/components/ExportButtons.jsx",
+        "src/services/reportService.js"
+      ]
+    },
+    {
+      "name": "Sorting and Pagination",
+      "description": "Client-side and server-side sorting by any column with ascending/descending order. Pagination with customizable page sizes (10, 20, 50, 100 rows).",
+      "files": [
+        "src/reports/components/ReportTable.jsx",
+        "src/services/reportService.js"
+      ]
+    },
+    {
+      "name": "Supabase Data Integration",
+      "description": "Fetches data from Supabase database tables with support for single and multi-table queries, filtering, sorting, and pagination.",
+      "files": [
+        "src/services/reportService.js",
+        "src/services/supabaseClient.js"
+      ]
+    },
+    {
+      "name": "Mock Data Service",
+      "description": "Provides fallback mock employee timesheet data for testing and development when Supabase tables are not configured.",
+      "files": [
+        "src/services/reportService.js"
+      ]
+    },
+    {
+      "name": "Report Preferences Storage",
+      "description": "Saves and retrieves user preferences for report columns, filters, and last viewed timestamps using localStorage with Supabase backup.",
+      "files": [
+        "src/services/reportPreferences.js"
+      ]
+    },
+    {
+      "name": "Searchable Select Component",
+      "description": "Reusable dropdown component with search/filter functionality for selecting from large lists of options.",
+      "files": [
+        "src/reports/components/SearchableSelect.jsx"
+      ]
+    },
+    {
+      "name": "Toast Notifications",
+      "description": "User feedback system for displaying success, error, and informational messages.",
+      "files": [
+        "src/components/Toast.jsx"
+      ]
+    },
+    {
+      "name": "Date Formatting Utilities",
+      "description": "Helper functions for formatting dates in MM/DD/YYYY format and other date-related operations.",
+      "files": [
+        "src/services/date.js"
+      ]
+    },
+    {
+      "name": "Application Routing",
+      "description": "React Router setup with routes for report selector, individual reports, customization, and filtering pages.",
+      "files": [
+        "src/main.jsx"
+      ]
+    },
+    {
+      "name": "Keyboard Shortcuts",
+      "description": "Supports keyboard shortcuts like Ctrl+F for filters and Ctrl+E for export in the report view.",
+      "files": [
+        "src/reports/ReportPage.jsx"
+      ]
+    }
+  ]
+}
+

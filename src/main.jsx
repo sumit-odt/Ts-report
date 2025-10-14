@@ -6,6 +6,7 @@ import ReportPage from "./reports/ReportPage.jsx";
 import ReportSelectorPage from "./reports/ReportSelectorPage.jsx";
 import ReportCustomize from "./reports/ReportCustomize.jsx";
 import ReportFilter from "./reports/ReportFilter.jsx";
+import ReportCreate from "./reports/ReportCreate.jsx";
 
 function AppShell() {
   return (
@@ -25,6 +26,7 @@ function AppShell() {
         <Routes>
           <Route path="/" element={<Navigate to="/reports" replace />} />
           <Route path="/reports" element={<ReportSelectorPage />} />
+          <Route path="/reports/create" element={<ReportCreate />} />
           <Route path="/reports/:id" element={<ReportPage />} />
           <Route path="/reports/:id/customize" element={<ReportCustomize />} />
           <Route path="/reports/:id/filter" element={<ReportFilter />} />

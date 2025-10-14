@@ -138,7 +138,7 @@ export default function ReportTable({
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table - Scrollable */}
       <div className="overflow-x-auto" style={{ overflowY: "visible" }}>
         <table
           className="table-stretch text-sm"
@@ -206,66 +206,67 @@ export default function ReportTable({
               ))}
           </tbody>
         </table>
+      </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-200 p-3 text-sm">
-          <div className="flex items-center gap-2">
-            <span>Rows per page:</span>
-            <div className="w-24">
-              <SearchableSelect
-                value={String(pageSize)}
-                onChange={handlePageSizeChange}
-                options={pageSizeOptions}
-                editable={false}
+      {/* Pagination Controls - Fixed (Outside scrollable area) */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-200 p-3 text-sm bg-white">
+        <div className="flex items-center gap-2">
+          <span>Rows per page:</span>
+          <div className="w-24">
+            <SearchableSelect
+              value={String(pageSize)}
+              onChange={handlePageSizeChange}
+              options={pageSizeOptions}
+              editable={false}
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            className="btn btn-outline"
+            disabled={page <= 1}
+            onClick={() => onPageChange(page - 1)}
+            aria-label="Previous page"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
               />
-            </div>
+            </svg>
+            Previous
+          </button>
+          <div className="px-3 py-1 bg-slate-100 rounded text-sm font-medium">
+            Page {page} of {Math.max(1, Math.ceil(total / pageSize))}
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              className="btn btn-outline"
-              disabled={page <= 1}
-              onClick={() => onPageChange(page - 1)}
-              aria-label="Previous page"
+          <button
+            className="btn btn-outline"
+            disabled={page >= Math.ceil(total / pageSize)}
+            onClick={() => onPageChange(page + 1)}
+            aria-label="Next page"
+          >
+            Next
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-              Previous
-            </button>
-            <div className="px-3 py-1 bg-slate-100 rounded text-sm font-medium">
-              Page {page} of {Math.max(1, Math.ceil(total / pageSize))}
-            </div>
-            <button
-              className="btn btn-outline"
-              disabled={page >= Math.ceil(total / pageSize)}
-              onClick={() => onPageChange(page + 1)}
-              aria-label="Next page"
-            >
-              Next
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </button>
-          </div>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
         </div>
       </div>
     </div>

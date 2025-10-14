@@ -87,4 +87,111 @@ export function getSchemaForReport(id) {
   return getReportById(id)?.schema || [];
 }
 
+// Store for custom reports (in localStorage)
+const CUSTOM_REPORTS_KEY = 'custom_reports';
+
+function getCustomReports() {
+  try {
+    const stored = localStorage.getItem(CUSTOM_REPORTS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (e) {
+    console.error('Error loading custom reports:', e);
+    return [];
+  }
+}
+
+function saveCustomReports(reports) {
+  try {
+    localStorage.setItem(CUSTOM_REPORTS_KEY, JSON.stringify(reports));
+  } catch (e) {
+    console.error('Error saving custom reports:', e);
+  }
+}
+
+export function addNewReport(report) {
+  const customReports = getCustomReports();
+  
+  // Check if report with same ID already exists
+  const existingIndex = customReports.findIndex(r => r.id === report.id);
+  
+  if (existingIndex >= 0) {
+    // Update existing report
+    customReports[existingIndex] = report;
+  } else {
+    // Add new report
+    customReports.push(report);
+  }
+  
+  saveCustomReports(customReports);
+  
+  // Dispatch event to notify other components
+  window.dispatchEvent(new CustomEvent('reportCatalogUpdated'));
+  
+  return report;
+}
+
+export function deleteReport(reportId) {
+  const customReports = getCustomReports();
+  const filtered = customReports.filter(r => r.id !== reportId);
+  saveCustomReports(filtered);
+  
+  // Also clear preferences for this report
+  localStorage.removeItem(`report_fields_${reportId}`);
+  localStorage.removeItem(`report_filters_${reportId}`);
+  localStorage.removeItem(`report_last_viewed_${reportId}`);
+  
+  // Dispatch event
+  window.dispatchEvent(new CustomEvent('reportCatalogUpdated'));
+}
+
+// Updated getReportCatalog to include custom reports
+export function getReportCatalogWithCustom() {
+  const baseCatalog = getReportCatalog();
+  const customReports = getCustomReports();
+  
+  if (customReports.length === 0) {
+    return baseCatalog;
+  }
+  
+  // Group custom reports by category
+  const customByCategory = customReports.reduce((acc, report) => {
+    const category = report.category || 'custom';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(report);
+    return acc;
+  }, {});
+  
+  // Merge with base catalog
+  const merged = [...baseCatalog];
+  
+  Object.entries(customByCategory).forEach(([category, reports]) => {
+    const existingCategory = merged.find(cat => cat.id === category);
+    
+    if (existingCategory) {
+      existingCategory.reports = [...existingCategory.reports, ...reports];
+    } else {
+      merged.push({
+        id: category,
+        title: category.charAt(0).toUpperCase() + category.slice(1),
+        reports: reports
+      });
+    }
+  });
+  
+  return merged;
+}
+
+// Updated getReportById to include custom reports
+export function getReportByIdWithCustom(id) {
+  // First check base reports
+  let report = getReportById(id);
+  if (report) return report;
+  
+  // Then check custom reports
+  const customReports = getCustomReports();
+  return customReports.find(r => r.id === id);
+}
+
 

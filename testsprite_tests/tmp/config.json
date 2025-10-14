@@ -1,0 +1,16 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:5173",
+  "executionArgs": {
+    "projectName": "Ts-Report",
+    "projectPath": "D:\\Ts-Report",
+    "testIds": [],
+    "additionalInstruction": "",
+    "envs": {
+      "API_KEY": "sk-user-n_SbgHWAGj9V6BOfn4Ww3eauFXLDMAVNTRCg8u-eXzOLFzYeW-fGaNlSsbemDZOTP6WEeHy6XxU0suB4Gi_8n6x6UGGkePZCTwLruoF1-R8q_ofNKLl_SAC55k1HrevfAxU"
+    }
+  },
+  "proxy": "http://9a807945-449e-4845-97e5-d66c9b5ac7ea:bplrNcM9W0PmBTPbZyZB24gJFDT7J8e6@tun.testsprite.com:8080"
+}

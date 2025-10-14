@@ -1,0 +1,439 @@
+[
+  {
+    "id": "TC001",
+    "title": "Report Catalog Display and Metadata Accuracy",
+    "description": "Verify that the Report Catalog Browser displays only authorized reports with correct and updated metadata including last viewed date and execution time.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as authorized user and navigate to the Report Module main page"
+      },
+      {
+        "type": "assertion",
+        "description": "Check that only reports accessible to the user are listed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify metadata for each listed report includes correct last viewed date and last execution time formatted properly"
+      },
+      {
+        "type": "action",
+        "description": "Select multiple reports and confirm metadata updates after viewing each report"
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure metadata reflects recent activity accurately and updates in real-time"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Report Execution with Pagination and Sorting",
+    "description": "Test report execution starts immediately upon clicking 'View', displays progress, shows data in a paginated and sortable table, and handles errors gracefully.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Select a report from the catalog and click 'View'"
+      },
+      {
+        "type": "assertion",
+        "description": "Observe that execution starts immediately with a visible progress indicator"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that resulting data appears in a table with default pagination (e.g., 10 rows per page)"
+      },
+      {
+        "type": "action",
+        "description": "Sort by various columns in ascending and descending order"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm sorting updates the displayed data correctly without errors"
+      },
+      {
+        "type": "action",
+        "description": "Navigate between pages using pagination controls"
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure pagination updates data displayed and controls reflect current page"
+      },
+      {
+        "type": "action",
+        "description": "Simulate report execution failure (e.g., backend error)"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm user is shown a clear error message and the UI recovers gracefully"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Report Schema Display with Field Types and Calculations",
+    "description": "Verify that the report schema view correctly displays field types, labels, calculated fields, and aggregation information.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open the schema details for a selected report"
+      },
+      {
+        "type": "assertion",
+        "description": "Check all fields are listed with accurate data types and user-friendly labels"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify calculated fields show correct formulas and output data types"
+      },
+      {
+        "type": "assertion",
+        "description": "Validate aggregation metadata (SUM, AVG, MIN, MAX) is shown clearly"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Report Customization: Multi-table Joins and Column Selection",
+    "description": "Test the ability to add and remove linked tables, select specific columns, reorder fields, and automatic foreign key linking with real-time counters.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open report customization interface on an existing report"
+      },
+      {
+        "type": "action",
+        "description": "Add multiple related tables via multi-table join functionality"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify tables are linked automatically using foreign keys"
+      },
+      {
+        "type": "action",
+        "description": "Select and deselect columns across all tables including 'select all' and 'deselect all' options"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm column counters update in real-time and users cannot remove the primary table"
+      },
+      {
+        "type": "action",
+        "description": "Reorder selected columns and observe the updated order reflected immediately"
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure customization changes reflect accurately in the schema preview"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Advanced Filtering with Multiple Conditions and Logical Operators",
+    "description": "Validate filter creation supports multiple conditions with AND/OR logic, proper operators are shown per data type, and filters do not persist beyond session unless saved.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open the Advanced Filtering section in a report customization or execution view"
+      },
+      {
+        "type": "action",
+        "description": "Create various filter conditions using data-type specific operators (e.g. equals, contains, greater than)"
+      },
+      {
+        "type": "action",
+        "description": "Combine multiple conditions using AND/OR logic"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify only appropriate operators are shown for each data type input"
+      },
+      {
+        "type": "action",
+        "description": "Apply filters and execute the report"
+      },
+      {
+        "type": "assertion",
+        "description": "Validate that the data returned respects the filter conditions"
+      },
+      {
+        "type": "action",
+        "description": "Refresh or close and reopen the report without saving filter preferences"
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure filters do not persist and default to no filters"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Calculated Fields Formula Validation and Output",
+    "description": "Ensure calculated fields accept valid formulas with arithmetic operations and parentheses; validate syntax errors are caught; results render with correct data types.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to create calculated fields using valid formulas including combinations of arithmetic operators and parentheses referencing existing fields"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify system accepts formulas and shows output data type selection"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to create calculated fields with invalid formulas (e.g., syntax errors, missing parentheses, invalid field references)"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm validation reports errors preventing save and guides user to fix formula"
+      },
+      {
+        "type": "action",
+        "description": "Use calculated fields in reports and execute"
+      },
+      {
+        "type": "assertion",
+        "description": "Check output values match expected computed results and data types"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Aggregation and Grouping Functional Verification",
+    "description": "Test SUM, AVG, MIN, MAX aggregation returns correct results when grouping by one or multiple fields; verify grouping segments data correctly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Create a report with numerical columns and apply aggregation functions (SUM, AVG, MIN, MAX)"
+      },
+      {
+        "type": "action",
+        "description": "Define grouping fields at single and multiple hierarchy levels"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify aggregated values are calculated correctly by each group and subgroup based on source data"
+      },
+      {
+        "type": "action",
+        "description": "Remove grouping and check aggregation updates accordingly"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm aggregated results change consistent with the removal of groupings"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Export to CSV, Excel, and PDF Formats",
+    "description": "Validate that report data can be exported correctly to CSV, Excel (XLSX), and PDF formats with proper formatting and headers matching the report view.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Execute a report with customized columns, filters, and sorting"
+      },
+      {
+        "type": "action",
+        "description": "Use export buttons and keyboard shortcut (Ctrl+E) to export report in CSV format"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify exported CSV file contains correct data, headers, and formatting"
+      },
+      {
+        "type": "action",
+        "description": "Repeat export process for Excel format"
+      },
+      {
+        "type": "assertion",
+        "description": "Validate Excel file integrity, data types, formatting, and headers"
+      },
+      {
+        "type": "action",
+        "description": "Repeat export process for PDF format"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm PDF file displays formatted table with headers, pagination if applicable, and report metadata"
+      },
+      {
+        "type": "action",
+        "description": "Attempt exporting when no data is available"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm user receives error toast notification and no file is generated"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "User Preferences Persistence in LocalStorage and Supabase Backup",
+    "description": "Verify that user preferences for columns, filters, and timestamps persist across sessions with fallback to localStorage and backup to Supabase.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Customize a report with selected columns and filters"
+      },
+      {
+        "type": "action",
+        "description": "Save report preferences"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm preferences are saved to localStorage and backed up to Supabase"
+      },
+      {
+        "type": "action",
+        "description": "Close and reopen the application or reload the page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user preferences are loaded automatically and applied in the report view"
+      },
+      {
+        "type": "action",
+        "description": "Simulate Supabase backup failure and check fallback to localStorage preferences load"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm preferences remain consistent and no data loss occurs"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Report Scheduling and Automated Email Delivery",
+    "description": "Test scheduling reports for automated execution at defined intervals with correct email distribution and failure notification.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Schedule a report with parameters: frequency, recipients, and export format"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the report runs automatically at scheduled times"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm scheduled report export files are attached correctly in email sent to recipients"
+      },
+      {
+        "type": "action",
+        "description": "Simulate a failure in report execution or email delivery"
+      },
+      {
+        "type": "assertion",
+        "description": "Check that user receives failure toast notification with appropriate error message"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Keyboard Shortcuts for Filtering and Exporting",
+    "description": "Validate that keyboard shortcuts Ctrl+F and Ctrl+E trigger the filter interface and export function respectively during report viewing.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to a report execution page with focus on the data table"
+      },
+      {
+        "type": "action",
+        "description": "Press Ctrl+F"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the filter interface opens and is focused for user input"
+      },
+      {
+        "type": "action",
+        "description": "Press Ctrl+E"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm the export options are triggered and last selected export happens"
+      },
+      {
+        "type": "action",
+        "description": "Press invalid key combinations"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no unintended actions occur"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Clear User Feedback via Toast Notifications",
+    "description": "Ensure the system displays toast notifications for success, error, and informational events timely and clearly.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Perform actions such as saving preferences, exporting data, and triggering errors"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify toast notifications display appropriate messages for success, errors, or information"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm notifications disappear after a reasonable timeout or can be manually dismissed"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Security and Role-based Access Controls on Edit/Copy/Delete",
+    "description": "Verify that edit, copy, and delete actions on report schemas are enforced based on user roles with confirmation dialogs and that copied reports do not affect originals.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login with a user having edit rights and attempt to edit, copy, and delete a report schema"
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure actions succeed with confirmation dialogs presented before delete"
+      },
+      {
+        "type": "action",
+        "description": "Perform a report copy and verify the original schema remains unchanged"
+      },
+      {
+        "type": "assertion",
+        "description": "Check that the copied report is persisted as a separate schema and visible in report catalog"
+      },
+      {
+        "type": "action",
+        "description": "Login as a user without edit rights and verify edit, copy, delete actions are disabled or produce access denied messages"
+      }
+    ]
+  }
+]
